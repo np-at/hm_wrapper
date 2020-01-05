@@ -3,7 +3,7 @@ import json
 
 import requests
 
-from mwrap import _utils
+from hm_wrapper import _utils
 
 
 class Radarr(object):

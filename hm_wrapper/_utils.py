@@ -1,4 +1,4 @@
-from datetime import datetime, date
+import datetime
 
 
 def parse_date_input(date_object: object) -> str:
@@ -9,12 +9,12 @@ def parse_date_input(date_object: object) -> str:
      :type date_object: object
     """
     iso_formatted_string: str
-    if isinstance(date_object, datetime):
-        iso_formatted_string = datetime(date_object).isoformat(timespec='seconds')
-    elif isinstance(date_object, date):
-        iso_formatted_string = date(date_object).isoformat()
+    if isinstance(date_object, datetime.datetime):
+        iso_formatted_string = datetime.datetime(date_object).isoformat(timespec='seconds')
+    elif isinstance(date_object, datetime.date):
+        iso_formatted_string = datetime.date(date_object).isoformat()
     else:
-        input_datetime: datetime
+        input_datetime: datetime.datetime
         input_datetime = None
         sep_chars = {'-', '/'}
         date_formats_order = {'M|D|Y', 'D|M|Y', 'Y|M|D'}
@@ -23,15 +23,15 @@ def parse_date_input(date_object: object) -> str:
                 break
             else:
                 for sep in sep_chars:
-                    result: datetime
+                    result: datetime.datetime
 
                     try:
                         form = ordr.replace('|', sep).replace('M', '%m').replace('Y', '%y').replace('D', '%d')
-                        result = datetime.strptime(date_object, form)
+                        result = datetime.datetime.strptime(date_object, form)
                     except ValueError:
                         try:
                             form = ordr.replace('|', sep).replace('M', '%m').replace('Y', '%Y').replace('D', '%d')
-                            result = datetime.strptime(date_object, form)
+                            result = datetime.datetime.strptime(date_object, form)
                         except ValueError:
                             result = None
                             pass

@@ -1,9 +1,9 @@
 from setuptools import setup
 
 setup(
-    name='sonarrapi',
-    version='0.1',
-    packages=['mwrap'],
+    name='hm_wrapper',
+    version='0.11',
+    packages=['hm_wrapper'],
     url='',
     license='',
     author='npraskins',
