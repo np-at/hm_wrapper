@@ -2,7 +2,7 @@ import setuptools
 
 setuptools.setup(
     name='hm_wrapper',
-    version='0.12.1',
+    version='0.12.2',
     packages=setuptools.find_packages(),
     install_requires=['requests'],
     python_requires='>=3.6',
