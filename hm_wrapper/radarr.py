@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import json
-
 import requests
 
 from hm_wrapper import _utils
@@ -200,14 +199,14 @@ class Radarr(object):
         res = self.request_get(f'{self.host_url}/queue')
         return res.json()
 
-    def delete_queue_item(self, id: int, blacklist: bool = False):
+    def delete_queue_item(self, queue_id: int, blacklist: bool = False):
         """
         Deletes an item from the queue and download client. Optionally blacklist item after deletion.
-        :param id: Unique ID of the command
+        :param queue_id: Unique ID of the command
         :param blacklist: Set to 'true' to blacklist after delete
         """
         json_body = dict()
-        json_body['id'] = id
+        json_body['id'] = queue_id
         json_body['blacklist'] = blacklist
         data = json.dumps(json_body)
         res = self.request_del(f'{self.host_url}/queue', data=data)
