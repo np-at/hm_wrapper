@@ -3,7 +3,7 @@
 import requests
 
 
-class SonarrAPI(object):
+class Sonarr(object):
 
     def __init__(self, host_url: str, api_key: str):
         """Constructor requires Host-URL and API-KEY
