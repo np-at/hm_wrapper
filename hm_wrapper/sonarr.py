@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import json
 
 import requests
 
@@ -16,6 +17,7 @@ class Sonarr(object):
         else:
             self.host_url = host_url.rstrip('/') + '/api'
 
+        self.Commands = self._Commands(self)
         self.api_key = api_key
 
     # ENDPOINT CALENDAR
@@ -27,8 +29,22 @@ class Sonarr(object):
         return res.json()
 
     # ENDPOINT COMMAND
-    def command(self):
-        pass
+    def run_command(self, **kwargs):
+        ags = dict()
+        for key, value in kwargs.items():
+            if value is not None:
+                ags[key] = value
+        res = self.request_post(f'{self.host_url}/command', data=ags)
+        return res.json()
+
+    def get_command(self, command_id: int = None):
+        """Without an id argument, returns the status of all currently started commands;
+        if id argument is supplied, it will return the status of just that run_command"""
+        id_string = str()
+        if command_id is not None:
+            id_string += "/" + command_id
+        res = self.request_get(f"{self.host_url}/run_command{id_string}")
+        return res.json()
 
     # ENDPOINT DISKSPACE
     def get_diskspace(self):
@@ -74,7 +90,6 @@ class Sonarr(object):
         return res.json()
 
     # ENDPOINT HISTORY
-    # DOES NOT WORK
     def get_history(self):
         """Gets history (grabs/failures/completed)"""
         res = self.request_get("{}/history".format(self.host_url))
@@ -223,7 +238,8 @@ class Sonarr(object):
         headers = {
             'X-Api-Key': self.api_key
         }
-        res = requests.put(url, headers=headers, json=data)
+        data2 = json.loads(data)
+        res = requests.put(url, headers=headers, json=data2)
         return res
 
     def request_del(self, url, data):
@@ -233,3 +249,96 @@ class Sonarr(object):
         }
         res = requests.delete(url, headers=headers, json=data)
         return res
+
+    class _Commands(object):
+        def __init__(self, parent):
+            assert isinstance(parent, Sonarr)
+            self._sonarr = parent
+
+        def refresh_series(self, series_id: int = None):
+            """
+            Refresh series information from trakt and rescan disk
+            :series_id: if not set all series will be refreshed and scanned
+            """
+            return self._sonarr.run_command(name='RefreshSeries', seriesId=series_id)
+
+        def rescan_series(self, series_id: int = None):
+            """Rescan disk for movies
+            :movie_id: if not set all movies will be scanned
+            """
+            return self._sonarr.run_command(name='RescanSeries', seriesId=series_id)
+
+        def episode_search(self, episode_ids: list = None):
+            """
+            Search for one or more movies
+            :type episode_ids: list
+            :parameter episode_ids: one or more episodeIds in an array Not 100% sure on this run_command variable
+            """
+            return self._sonarr.run_command(name='EpisodeSearch', episodeIds=episode_ids)
+
+        def season_search(self, series_id: int, season_number: int):
+            """
+            Search for all episodes of a particular season
+            :param series_id:
+            :param season_number:
+            """
+            return self._sonarr.run_command(name='SeasonSearch', seriesId=series_id, seasonNumber=season_number)
+
+        def series_search(self, series_id: int):
+            """
+            Search for all episodes in a series
+            :param series_id:
+            """
+            return self._sonarr.run_command(name='SeriesSearch', seriesId=series_id)
+
+        def downloaded_episodes_scan(self, path: str = None, download_client_id: str = None, import_mode: str = None):
+            """
+            Update: Due to a deprecated Drone Factory, this command should only be used in combination with the 'path'
+            set in the POSTed json body.
+
+            Instruct Sonarr to scan and import the DroneFactoryFolder or another folder defined by the path variable.
+            Each file and folder in the DroneFactoryFolder is interpreted as a separate download (job). A folder
+            specified by the path variable is assumed to be a single download (job) and the folder name should be the
+            release name. The downloadClientId can be used to support this API endpoint in conjunction with Completed
+            Download Handling, so Sonarr knows that a particular download has already been imported. Optionally the
+            'importMode' can be used to specify whether Sonarr should Hardlink/Copy or Move the imported files.
+            :param path:
+            :param download_client_id: - nzoid for sabnzbd ; special 'drone' attribute value for nzbget;
+            - uppercase infohash for torrents
+            :param import_mode: Move or Copy
+            - Copy = Copy or Hardlink depending on Sonarr configuration
+            - Can be used to override the default Copy for torrents with external preprocessing/transcoding/unrar.
+            """
+            return self._sonarr.run_command(name='DownloadedEpisodesScan', path=path,
+                                            downloadClientId=download_client_id
+                                            , importMode=import_mode)
+
+        def rss_sync(self):
+            """Instruct Sonarr to perform an RSS sync with all enabled indexers"""
+            return self._sonarr.run_command(name='RssSync')
+
+        def rename_files(self, files: list = None):
+            """Instruct Sonarr to rename the list of files provided.
+            :type files: list
+            :param files: List of File IDs to rename
+            """
+            return self._sonarr.run_command(name='RenameFiles', files=files)
+
+        def rename_series(self, series_ids: list):
+            """Instruct Sonarr to rename all files in the provided series.
+            :type series_ids: list
+            :param series_ids: List of Movie IDs to rename
+            """
+            return self._sonarr.run_command(name='RenameMovie', seriesIds=series_ids)
+
+        def backup(self):
+            """
+            Instruct Sonarr to perform a backup of its database and config file (nzbdrone.db and config.xml)
+            """
+            return self._sonarr.run_command(name='Backup')
+
+        def missing_episode_search(self):
+            """
+            Instruct Sonarr to perform a backlog search of missing episodes (Similar functionality to Sickbeard)
+            """
+            return self._sonarr.run_command(name='missingEpisodeSearch')
