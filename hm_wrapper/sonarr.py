@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import json
-
+import logging
 import requests
 
 
@@ -37,28 +37,28 @@ class Sonarr(object):
         res = self.request_post(f'{self.host_url}/command', data=ags)
         return res.json()
 
-    def get_command(self, command_id: int = None):
+    def get_command(self, command_id: int = None) -> dict:
         """Without an id argument, returns the status of all currently started commands;
         if id argument is supplied, it will return the status of just that run_command"""
         id_string = str()
         if command_id is not None:
-            id_string += "/" + command_id
+            id_string += "/" + str(command_id)
         res = self.request_get(f"{self.host_url}/run_command{id_string}")
         return res.json()
 
     # ENDPOINT DISKSPACE
-    def get_diskspace(self):
+    def get_diskspace(self) -> list:
         """Return Information about Diskspace"""
         res = self.request_get("{}/diskspace".format(self.host_url))
         return res.json()
 
     # ENDPOINT EPISODE
-    def get_episodes_by_series_id(self, series_id):
+    def get_episodes_by_series_id(self, series_id) -> list:
         """Returns all episodes for the given series"""
         res = self.request_get("{}/episode?seriesId={}".format(self.host_url, series_id))
         return res.json()
 
-    def get_episode_by_episode_id(self, episode_id):
+    def get_episode_by_episode_id(self, episode_id) -> list:
         """Returns the episode with the matching id"""
         res = self.request_get("{}/episode/{}".format(self.host_url, episode_id))
         return res.json()
@@ -72,13 +72,13 @@ class Sonarr(object):
         return res.json()
 
     # ENDPOINT EPISODE FILE
-    def get_episode_files_by_series_id(self, series_id):
+    def get_episode_files_by_series_id(self, series_id) -> list:
         """Returns all episode files for the given series"""
         res = self.request_get("{}/episodefile?seriesId={}".format(self.host_url, series_id))
         return res.json()
 
     # TEST THIS
-    def get_episode_file_by_episode_id(self, episode_id):
+    def get_episode_file_by_episode_id(self, episode_id) -> list:
         """Returns the episode file with the matching id"""
         res = self.request_get("{}/episodefile/{}".format(self.host_url, episode_id))
         return res.json()
@@ -182,8 +182,91 @@ class Sonarr(object):
         }
         return series_json
 
-    def add_series(self, series_json):
-        """Add a new series to your collection"""
+    def add_series_by_tvdbId(self, tvdbId, quality_profile):
+        try:
+            series_json = self.construct_series_json(tvdbId=tvdbId, quality_profile=quality_profile)
+            try:
+                self.add_series_from_json(series_json=series_json)
+            except:
+                logging.exception("error while adding series")
+                pass
+        except Exception as ex:
+            logging.exception("erroe")
+            raise ex
+        return
+
+    # noinspection PyPep8Naming
+    def add_series_by_parameters(self, tvdbId: int, title: str, profileId: int, titleSlug: str, images: list,
+                                 seasons: list,
+                                 fullPath: str = None,
+                                 rootFolderPath: str = None, tvRageId: int = None, seasonFolder=None,
+                                 monitored: bool = None,
+                                 ignoreEpisodesWithFiles: bool = None, ignoreEpisodesWithoutFiles: bool = None,
+                                 searchForMissingEpisodes: bool = None):
+        """
+        Adds a series to Sonarr
+        :param tvdbId:
+        :param title:
+        :param profileId:
+        :param titleSlug:
+        :param images:
+        :param seasons:
+        :param fullPath: path (string) - full path to the series on disk
+        :param rootFolderPath: full path will be created by combining the rootFolderPath with the series title
+        :param tvRageId:
+        :param seasonFolder:
+        :param monitored:
+        :param ignoreEpisodesWithFiles: Unmonitors any episodes with a file
+        :param ignoreEpisodesWithoutFiles: Unmonitors any episodes without a file
+        :param searchForMissingEpisodes: Searches for missing files after applying ignoreEpisodesWithFiles and ignoreEpisodesWithoutFiles
+        """
+
+        newSeriesObject = dict()
+        # check that we have EITHER fullPath or rootFolderPath
+        if fullPath is None and rootFolderPath is None:
+            raise Exception
+        elif fullPath is not None and rootFolderPath is not None:
+            raise Exception
+        elif fullPath is None and rootFolderPath is not None:
+            newSeriesObject["rootFolderPath"] = rootFolderPath
+        elif fullPath is not None and rootFolderPath is None:
+            newSeriesObject["path"] = fullPath
+        else:
+            pass
+
+        newSeriesObject.update({
+            "tvdbId": tvdbId,
+            "title": title,
+            "profileId": profileId,
+            "titleSlug": titleSlug,
+            "images": images,
+            "seasons": seasons,
+        })
+        if tvRageId is not None:
+            newSeriesObject["tvRageId"] = tvRageId
+        if seasonFolder is not None:
+            newSeriesObject["seasonFolder"] = seasonFolder
+        if monitored is not None:
+            newSeriesObject["monitored"] = monitored
+
+        # create the addOptions object, add it if applicable
+        addOptions = dict()
+        if ignoreEpisodesWithFiles is not None:
+            addOptions["ignoreEpisodesWithFiles"] = ignoreEpisodesWithFiles
+        if ignoreEpisodesWithoutFiles is not None:
+            addOptions["ignoreEpisodesWithoutFiles"] = ignoreEpisodesWithoutFiles
+        if searchForMissingEpisodes is not None:
+            addOptions["searchForMissingEpisodes"] = searchForMissingEpisodes
+        if len(addOptions) > 0:
+            newSeriesObject["addOptions"] = addOptions
+
+        return self.add_series_from_json(newSeriesObject)
+
+    def add_series_from_json(self, series_json):
+        """Add a new series to your collection from pre-assembled json
+        :param series_json:
+        :return json response:
+        """
         res = self.request_post("{}/series".format(self.host_url), data=series_json)
         return res.json()
 
