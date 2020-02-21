@@ -8,6 +8,7 @@ setuptools = "*"
 
 [packages]
 requests = "*"
+urllib3 = "==1.25.8"
 
 [requires]
 python_version = "3.8"
